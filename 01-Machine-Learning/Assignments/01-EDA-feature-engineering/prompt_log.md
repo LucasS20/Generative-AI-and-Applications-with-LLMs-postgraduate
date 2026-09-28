@@ -10,14 +10,14 @@
 
 | # | Etapa | Seção do notebook | Status |
 |---|---|---|---|
-| 1 | Primeira inspeção | 3 | ⬜ Pendente |
-| 2 | Distribuições | 4 | 🟨 Em andamento |
-| 3 | Outliers (IQR) | 5 | 🟨 Em andamento |
-| 4 | Correlação | 6 | 🟨 Em andamento |
+| 1 | Primeira inspeção | 3 | ✅ Concluído |
+| 2 | Distribuições | 4 | ✅ Concluído |
+| 3 | Outliers (IQR) | 5 | ✅ Concluído |
+| 4 | Correlação | 6 | ✅ Concluído |
 | 5 | Brainstorming de features | 7 | ✅ Concluído |
-| 6 | Prompt Battle (dupla) | 7 | ⬜ Pendente |
-| 7 | Features finais implementadas | 7 | 🟨 Em andamento |
-| 8 | Pré-processamento e split | 8 e 9 | 🟨 Em andamento |
+| 6 | Prompt Battle (dupla) | 7 | ⬜ Não realizado (exercício em dupla, fora do checklist final) |
+| 7 | Features finais implementadas | 7 | ✅ Concluído |
+| 8 | Pré-processamento e split | 8 e 9 | ✅ Concluído |
 
 Legenda: ⬜ Pendente · 🟨 Em andamento · ✅ Concluído
 
@@ -29,9 +29,11 @@ Legenda: ⬜ Pendente · 🟨 Em andamento · ✅ Concluído
 
 | Variável | Média | Mediana | Relação | Formato | Precisa de transformação? |
 |---|---|---|---|---|---|
-| `tenure` | _ | _ | _ | _ | Não |
-| `MonthlyCharges` | 64,76 | 70,35 | média < mediana | Assimetria à esquerda (leve, skew = −0,22) e bimodal | _ |
-| `TotalCharges` | 2.283,30 | 1.397,48 | média > mediana | Assimetria à direita (skew = 0,96) | _ |
+| `tenure` | 32,37 | 29,00 | média > mediana | Assimetria à direita leve (skew = 0,24), com picos nas pontas (clientes novos e clientes com 70–72 meses)\* | Não |
+| `MonthlyCharges` | 64,76 | 70,35 | média < mediana | Assimetria à esquerda (leve, skew = −0,22) e bimodal | Não\*: assimetria leve; log ou Box-Cox não resolvem a bimodalidade |
+| `TotalCharges` | 2.283,30 | 1.397,48 | média > mediana | Assimetria à direita (skew = 0,96) | Opcional\*: só para modelos lineares. Raiz quadrada reduz o skew para 0,31; log inverte para −0,74. Não aplicada nesta tarefa |
+
+\* Preenchido pela IA (Claude Code · Claude Opus 5.5 · 27/09/2026), a pedido: "faça essa parte e três campos da tabela de distribuições: média, mediana e formato de tenure, e 'Precisa de transformação?' de MonthlyCharges e TotalCharges".
 
 Observações (multimodalidade, picos, etc.): `MonthlyCharges` tem dois picos: um grande perto de 20 (clientes com plano básico) e outro em torno de 80–90. A leve assimetria à esquerda vem dessa mistura de grupos, não de uma cauda longa.
 
@@ -171,7 +173,7 @@ Critério de viabilidade: nenhuma feature exige cálculo complexo ou combinaçã
 
 ---
 
-## 7. Features finais implementadas (célula 30)
+## 7. Features finais implementadas (Seção 7)
 
 | Feature | Origem (exemplo do notebook / IA / própria) | Código Pandas | Cuidado tratado |
 |---|---|---|---|
@@ -183,7 +185,7 @@ Critério de viabilidade: nenhuma feature exige cálculo complexo ou combinaçã
 | `contract_commitment_months` | IA (feature 3 do brainstorming) | `Contract.map({Month-to-month: 1, One year: 12, Two year: 24})` | Mapeamento fixo |
 | `is_manual_digital_payer` | IA (feature 4 do brainstorming) | `(PaymentMethod == "Electronic check") & (PaperlessBilling == "Yes")` | Regra fixa por linha |
 
-Implementação: célula 31 do notebook; as 4 features foram incluídas no split (célula 39). `X_train_final` (4.930 × 23) e `X_test_final` (2.113 × 23) ficaram sem `NaN`.
+Implementação: célula "Espaço para as features que foi validada com o Checklist do Auditor" (Seção 7); as 4 features foram incluídas no split (Seção 9). Bases finais, após todos os ajustes da Seção 8: `X_train_final` 4.930 × 27 e `X_test_final` 2.113 × 27, sem `NaN`.
 
 ---
 
@@ -211,14 +213,14 @@ Implementação: célula 31 do notebook; as 4 features foram incluídas no split
   > PaymentMethod, PaperlessBilling, onehot
   > contract retirar
   > tenurestage talvez retirar, sobre os dados de escalonamento acho que pode manter, me parece bom
-- Resultado: `Contract` removido de `features_categoricas` (célula 39). `X_train_final` 4.930 × 20 e `X_test_final` 2.113 × 20.
+- Resultado: `Contract` removido de `features_categoricas` (célula do split, Seção 9). `X_train_final` 4.930 × 20 e `X_test_final` 2.113 × 20.
 - Prompt (binárias):
   > tirar  is_high_risk_segment e is_manual_digital_payer  do scaller
-- Resultado: nova lista `features_binarias` (célula 39); na célula 40 essas colunas pulam o `StandardScaler` e são concatenadas sem transformação. Shape final igual (20 colunas), sem `NaN`.
+- Resultado: nova lista `features_binarias` (célula do split, Seção 9); na célula de escalonamento/encoding essas colunas pulam o `StandardScaler` e são concatenadas sem transformação. Shape final igual (20 colunas), sem `NaN`.
 - Prompt (novas categóricas):
   > incluir InternetService, OnlineSecurity e TechSupport em features_categoricas.
-- Resultado: as 3 colunas foram incluídas no One-Hot (célula 39). `X_train_final` 4.930 × 29 e `X_test_final` 2.113 × 29, sem `NaN`. Taxa de churn: `InternetService` Fiber optic 41,9% · DSL 19,0% · sem internet 7,4%; `OnlineSecurity` No 41,8% · Yes 14,6%; `TechSupport` No 41,6% · Yes 15,2%. Alerta: `OnlineSecurity_No internet service` e `TechSupport_No internet service` são idênticas a `InternetService_No` (3 colunas iguais).
+- Resultado: as 3 colunas foram incluídas no One-Hot (célula do split, Seção 9). `X_train_final` 4.930 × 29 e `X_test_final` 2.113 × 29, sem `NaN`. Taxa de churn: `InternetService` Fiber optic 41,9% · DSL 19,0% · sem internet 7,4%; `OnlineSecurity` No 41,8% · Yes 14,6%; `TechSupport` No 41,6% · Yes 15,2%. Alerta: `OnlineSecurity_No internet service` e `TechSupport_No internet service` são idênticas a `InternetService_No` (3 colunas iguais).
 - O que aceitei / rejeitei (colunas repetidas):
   > 1 juntar
-- Resultado: na célula 39, `OnlineSecurity` e `TechSupport` trocam "No internet service" por "No" antes do split (mapeamento fixo, sem leakage). `X_train_final` 4.930 × 27 e `X_test_final` 2.113 × 27, sem `NaN`.
+- Resultado: na célula do split (Seção 9), `OnlineSecurity` e `TechSupport` trocam "No internet service" por "No" antes do split (mapeamento fixo, sem leakage). `X_train_final` 4.930 × 27 e `X_test_final` 2.113 × 27, sem `NaN`.
 
