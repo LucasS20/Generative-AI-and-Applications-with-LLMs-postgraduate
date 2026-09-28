@@ -29,7 +29,7 @@ Legenda: ⬜ Pendente · 🟨 Em andamento · ✅ Concluído
 
 | Variável | Média | Mediana | Relação | Formato | Precisa de transformação? |
 |---|---|---|---|---|---|
-| `tenure` | _ | _ | _ | _ | _ |
+| `tenure` | _ | _ | _ | _ | Não |
 | `MonthlyCharges` | 64,76 | 70,35 | média < mediana | Assimetria à esquerda (leve, skew = −0,22) e bimodal | _ |
 | `TotalCharges` | 2.283,30 | 1.397,48 | média > mediana | Assimetria à direita (skew = 0,96) | _ |
 
@@ -44,7 +44,7 @@ Observações (multimodalidade, picos, etc.): `MonthlyCharges` tem dois picos: u
 
 **Comparação: minha leitura × IA:**
 - Onde concordamos: direção da assimetria: `MonthlyCharges` à esquerda e `TotalCharges` à direita (minha leitura, confirmada pelo gráfico)
-- Onde divergimos (e quem estava certo): _
+- Onde divergimos (e quem estava certo): sem divergência
 
 ---
 
@@ -72,7 +72,7 @@ Minha leitura: nenhuma das três variáveis tem outlier pelo método IQR.
 - Máximo de 72 meses: 362 clientes têm exatamente 72 meses e 651 têm 70 ou mais. Um pico colado no máximo indica provável **corte do dataset** (janela de coleta de ~6 anos), não que ninguém fique mais tempo. Esses clientes quase não cancelam (1,7% de churn, contra 52,9% em quem tem até 6 meses).
 - Cobrança excessiva: a conclusão não se sustenta pela análise de outliers, que não olha para `Churn`. `TotalCharges` cresce com o tempo de casa, então quem cancela tem `TotalCharges` **menor** (mediana 703,55 contra 1.683,60), porque sai cedo. O sinal de preço está em `MonthlyCharges`: quem cancela paga mais por mês (mediana 79,65 contra 64,43). Ou seja, preço pode sim pesar no churn. A Seção 6 (correlação) ajuda a confirmar.
 
-**Decisão de negócio (manter ou remover):** _
+**Decisão de negócio (manter ou remover):** manter
 
 **Uso de IA:**
 - Ferramenta / modelo / data: Claude Code (Claude Opus 5.5) · 27/09/2026
@@ -88,7 +88,11 @@ Minha leitura: nenhuma das três variáveis tem outlier pelo método IQR.
 **Minha leitura (sem IA):**
 - Maior correlação: `tenure` × `TotalCharges` (r = 0,83), conforme o texto do notebook
 - O que significa, com minhas palavras: talvez porque as cobranças mensais de quem cancelou estavam muito altas?
-- Correlação de cada variável com `Churn`: `tenure`: "quem cancela mais é quem tem menos tempo de casa". `MonthlyCharges`: hipótese de que as cobranças mensais de quem cancelou estavam muito altas
+  - Revisão (versão final): `TotalCharges` é praticamente `tenure × MonthlyCharges`: quanto mais tempo de casa, mais o cliente acumula de cobrança. Por isso as duas andam juntas, e usar ambas no modelo seria redundante.
+- Correlação de cada variável com `Churn`:
+  - `tenure` −0,35: quanto mais tempo de casa, menos cancela.
+  - `TotalCharges` −0,20: é reflexo do `tenure`.
+  - `MonthlyCharges` +0,19: quem paga mais cancela um pouco mais.
 - Risco de multicolinearidade e o que fazer: decisões tomadas no pré-processamento (Seção 8): retirar `Contract` (repetida por `contract_commitment_months`); juntar "No internet service" em "No" em `OnlineSecurity` e `TechSupport` (repetiam `InternetService_No`); `tenure_stage` talvez retirar
 
 **Uso de IA:**
@@ -145,7 +149,7 @@ Critério de viabilidade: nenhuma feature exige cálculo complexo ou combinaçã
 **Prompt da auditoria:**
 > sobre as features pode aprovar todas menos a 5, acho que todas fazem sentido pro negocio menos a 5 tambem, se é viavel acho e sim, pois nao sao calculos muito complexos e misturados
 
-**Alucinações encontradas:** _
+**Alucinações encontradas:** nenhuma.
 
 ---
 
@@ -190,7 +194,7 @@ Implementação: célula 31 do notebook; as 4 features foram incluídas no split
 - Encoding: **One-Hot** em `PaymentMethod`, `PaperlessBilling`, `InternetService`, `OnlineSecurity` e `TechSupport` (categorias sem ordem). **`Contract` retirado**: a informação já está em `contract_commitment_months` (1/12/24), que preserva a ordem do compromisso. `OnlineSecurity` e `TechSupport`: categoria "No internet service" juntada em "No" (evita 3 colunas idênticas a `InternetService_No`). `tenure_stage`: talvez retirar (em avaliação; por enquanto continua no One-Hot)
 - Escalonamento: **`StandardScaler`** nas features numéricas contínuas, mantido como no notebook · justificativa: me parece bom. **Exceção:** `is_high_risk_segment` e `is_manual_digital_payer` ficam **fora do scaler** (lista `features_binarias`) e entram em `X_*_final` como 0/1
 - Split: `test_size` = 0,3 · `stratify=y` · churn treino = 26,5% · churn teste = 26,5%
-- Como evitei leakage (`fit` só no treino): _
+- Como evitei leakage (`fit` só no treino): split antes de qualquer fit. `fit` só no treino, `transform` no treino e no teste. Não usei a variável alvo (`Churn`) para criar features. A imputação de `TotalCharges` com 0 é feita antes do split porque é uma constante e não usa estatística do dataset
 
 **Uso de IA:**
 - Ferramenta / modelo / data: Claude Code (Claude Opus 5.5) · 27/09/2026
